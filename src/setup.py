@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name='hailstorm_events',
+    name='sentinel_preprocess',
     version='',
     packages=[''],
     url='',
