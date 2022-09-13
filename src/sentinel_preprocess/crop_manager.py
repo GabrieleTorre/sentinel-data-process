@@ -1,11 +1,12 @@
-from tiff_utils import extrapolate
-
 from shapely.geometry import Polygon
 from rasterio.windows import Window
 from rasterio.io import MemoryFile
+from tiff_utils import extrapolate
+
 from pyproj import Transformer
 from pathlib import Path
 from tqdm import tqdm
+
 from glob import glob
 import pandas as pd
 import numpy as np
@@ -17,19 +18,20 @@ import os
 
 class crop_manager():
     def __init__(self):
-        self.bands = ["B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A",
-                      "B11", "B12"]
+        self.bands = ["B02", "B03", "B04", "B05", "B06", "B07", "B08",
+                      "B8A", "B11", "B12"]
         self.resolutions = ["R10m", "R10m", "R10m", "R20m", "R20m", "R20m",
                             "R10m", "R20m", "R20m", "R20m"]
 
-        self.masks = ['MSK_CLDPRB']
-        self.masks_resolution = ['20m']
+        self.masks = ['MSK_CLDPRB', 'MSK_SNWPRB']
+        self.masks_resolution = ['20m', '20m']
 
         self.bands_and_resolutions = list(zip(self.bands, self.resolutions))
         self.masks_and_resolutions = list(zip(self.masks, self.masks_resolution))
 
         self.target_dim = (10980, 10980)
         self.id_format = 'n{}e{}'
+
 
     @staticmethod
     def get_bands_dirs(src_dir):
@@ -135,5 +137,7 @@ class crop_manager():
 
             _mask = cldmask.read(window=Window(pixel_x, pixel_y, 128, 128))
             cloudP_dir = os.path.join(_path , 'cloudProb')
+
             if os.path.isdir(cloudP_dir) == False: os.mkdir(cloudP_dir)
             np.save(os.path.join(cloudP_dir, npname+'.npy'), _mask)
+            import pdb; pdb.set_trace()
