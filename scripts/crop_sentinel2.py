@@ -10,15 +10,14 @@ if __name__ == "__main__":
 
     parser.add_argument("directory_in", default="None", help="Data In location")
     parser.add_argument("--directory_out", default="None", help="Data Out location")
-
     parser.add_argument("--start_date", default="None", help="processing start date yyyy-mm-dd")
     parser.add_argument("--end_date", default="None", help="processing end date yyyy-mm-dd")
 
     args = parser.parse_args()
 
     data_date = datetime.strptime(args.directory_in.split('_')[-5], "%Y%m%dT%H%M%S")
-    if args.start_date: start_date = datetime.strptime(args.start_date, "%Y-%m-%d")
-    if args.end_date:   end_date = datetime.strptime(args.end_date, "%Y-%m-%d")
+    start_date = datetime.strptime(args.start_date, "%Y-%m-%d") if args.start_date is not None else None
+    end_date = datetime.strptime(args.end_date, "%Y-%m-%d") if args.end_date is not None else None
 
     conditions = [
         start_date is None and end_date is None,
