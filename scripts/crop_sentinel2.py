@@ -28,5 +28,5 @@ if __name__ == "__main__":
     ]
 
     if any(conditions):
-        print('Currently Processing: {}'.format(args.directory_in))
+        print('Currently Processing: {}'.format(args.directory_in.split('/')[-1]))
         crop_manager().create_crops_data(args.directory_in, args.directory_out)
