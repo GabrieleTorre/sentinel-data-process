@@ -1,4 +1,5 @@
 from scipy.interpolate import RectBivariateSpline, interp2d
+from shapely.geometry.multipolygon import MultiPolygon
 from shapely.geometry import Polygon
 from rasterio.io import MemoryFile
 from shapely.ops import transform
@@ -25,7 +26,12 @@ def reproject(polygons, proj_from, proj_to):
     proj_to = pyproj.Proj(proj_to)
 
     projection = pyproj.Transformer.from_proj(proj_from, proj_to)
-    return [transform(projection.transform, p) for p in polygons]
+    out = None
+    if isinstance(polygons, MultiPolygon):
+        out = [transform(projection.transform, p) for p in polygons.geoms]
+    elif isinstance(polygons, Polygon):
+        out = [transform(projection.transform, polygons)]
+    return out
 
 
 def extrapolate(arr, target_dim):
