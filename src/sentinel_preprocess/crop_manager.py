@@ -2,10 +2,8 @@ from shapely.geometry import Polygon
 from rasterio.windows import Window
 from rasterio.io import MemoryFile
 from tiff_utils import extrapolate
-
 from pyproj import Transformer
 from pathlib import Path
-from tqdm import tqdm
 
 from glob import glob
 import pandas as pd
@@ -97,19 +95,25 @@ class crop_manager():
         return tiff_f
 
 
-    def create_crops_data(self, safe_data_path, numpy_root_data_dir, tile='T32TPQ'):
-        _name = safe_data_path.split('/')[-1].split(".")[0]
-        curr_data_dir = glob(os.path.join(safe_data_path, "GRANULE/*/IMG_DATA"))[0]
+    def extract_tile_name(self, x): return x.split('/')[-2].split('_')[1]
 
+
+    def create_crops_data(self, safe_data_path, numpy_root_data_dir):
+        _name = safe_data_path.split('/')[-1].split(".")[0]
+
+        curr_data_dir = glob(os.path.join(safe_data_path, "GRANULE/*/IMG_DATA"))[0]
         curr_mask_dir = ['/'] + curr_data_dir.split('/')[:-1] + ["QI_DATA"]
         curr_mask_dir = os.path.join(*curr_mask_dir)
+
+        tile = self.extract_tile_name(curr_data_dir)
 
         npname = _name.split('/')[-1].split('_')[2].split('T')[0]
 
         dataset = crop_manager().read_all_bands(curr_data_dir)
         cldmask = crop_manager().read_cloud_masks(curr_mask_dir)
 
-        x_list = y_list = [i * 128 for i in range(10980 // 128 - 1)]  # si esclude una striscia (inferiore a 128)
+        # si esclude una striscia (inferiore a 128)
+        x_list = y_list = [i * 128 for i in range(10980 // 128 - 1)]
 
         for pixel_x, pixel_y in itertools.product(x_list, y_list):
             transformer = Transformer.from_crs(dataset.crs, "epsg:4326")
@@ -140,4 +144,3 @@ class crop_manager():
 
             if os.path.isdir(cloudP_dir) == False: os.mkdir(cloudP_dir)
             np.save(os.path.join(cloudP_dir, npname+'.npy'), _mask)
-            import pdb; pdb.set_trace()
