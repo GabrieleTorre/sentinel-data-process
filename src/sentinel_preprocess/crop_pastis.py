@@ -52,7 +52,7 @@ class crop_pastis(crop_manager):
                 curr_data_dir = glob(os.path.join(_path, "GRANULE/*/IMG_DATA"))[0]
                 dataset = crop_manager().read_all_bands(curr_data_dir)
                 for _, parcel in data.iterrows():
-                    X = self.crop_tiff_to_npy(dataset, parcel.geometry)
+                    X = self.crop_tiff_to_npy(dataset, parcel.geometry)[np.newaxis, :]
                     file_path = os.path.join(self.output_dir, self.npy_template.format(parcel.id))
                     if os.path.isfile(file_path):
                         tmp = np.load(file_path)
