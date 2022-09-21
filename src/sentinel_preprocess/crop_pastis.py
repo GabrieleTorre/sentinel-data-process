@@ -44,7 +44,7 @@ class crop_pastis(crop_manager):
             sentinel_df = self.retrieve_sentinel_path()
             data = meta_df[meta_df.TILE == tile.upper()]
 
-            dates = data.iloc[0]['dates-S2']  # {'0': 20180924, '1': 20180929}
+            dates = data.iloc[0]['dates-S2']  # {'0': 20180924, '1': 20180929, '2': 20181024}
             for key, ref_date in tqdm(dates.items()):
                 _path = sentinel_df[(sentinel_df.tile == tile.upper()) &
                                     (sentinel_df.ref_date == ref_date)].path.iloc[0]
@@ -56,7 +56,7 @@ class crop_pastis(crop_manager):
                     file_path = os.path.join(self.output_dir, self.npy_template.format(parcel.id))
                     if os.path.isfile(file_path):
                         tmp = np.load(file_path)
-                        X = np.stack([tmp, X])
+                        X = np.concatenate((tmp, X), axis=0)
 
                     np.save(file_path, X)
 
