@@ -37,28 +37,26 @@ class crop_pastis(crop_manager):
             lambda x: int(x.split('/')[-1].split('_')[2].split('T')[0]))
         return sentinel_df
 
-    def crop_tile_for_pastis(self, tile):
+    def crop_tile_for_pastis(self, tile, ref_date):
         meta_df = gpd.read_file(self.pastis_metadata)
         meta_df.loc[:, 'TILE'] = meta_df.TILE.str.upper()
         if tile in meta_df.TILE.unique():
             sentinel_df = self.retrieve_sentinel_path()
             data = meta_df[meta_df.TILE == tile.upper()]
 
-            dates = data.iloc[0]['dates-S2']  # {'0': 20180924, '1': 20180929, '2': 20181024}
-            for key, ref_date in tqdm(dates.items()):
-                _path = sentinel_df[(sentinel_df.tile == tile.upper()) &
-                                    (sentinel_df.ref_date == ref_date)].path.iloc[0]
-                _name = _path.split('/')[-1].split(".")[0]
-                curr_data_dir = glob(os.path.join(_path, "GRANULE/*/IMG_DATA"))[0]
-                dataset = crop_manager().read_all_bands(curr_data_dir)
-                for _, parcel in data.iterrows():
-                    X = self.crop_tiff_to_npy(dataset, parcel.geometry)[np.newaxis, :]
-                    file_path = os.path.join(self.output_dir, self.npy_template.format(parcel.id))
-                    if os.path.isfile(file_path):
-                        tmp = np.load(file_path)
-                        X = np.concatenate((tmp, X), axis=0)
+            _path = sentinel_df[(sentinel_df.tile == tile.upper()) &
+                                (sentinel_df.ref_date == ref_date)].path.iloc[0]
+            _name = _path.split('/')[-1].split(".")[0]
+            curr_data_dir = glob(os.path.join(_path, "GRANULE/*/IMG_DATA"))[0]
+            dataset = crop_manager().read_all_bands(curr_data_dir)
+            for _, parcel in data.iterrows():
+                X = self.crop_tiff_to_npy(dataset, parcel.geometry)[np.newaxis, :]
+                file_path = os.path.join(self.output_dir, self.npy_template.format(parcel.id))
+                if os.path.isfile(file_path):
+                    tmp = np.load(file_path)
+                    X = np.concatenate((tmp, X), axis=0)
 
-                    np.save(file_path, X)
+                np.save(file_path, X)
 
         else:
             print('Unknown tile!')
