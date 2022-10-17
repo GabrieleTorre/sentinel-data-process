@@ -72,7 +72,7 @@ class crop_manager():
     def read_cloud_masks(self, src_mask_dir):
         tiff_f = None
         for i, (mask, resolution) in enumerate(self.masks_and_resolutions, start=1):
-            mask_file = os.path.join(src_mask_dir, 'MSK_CLDPRB_' + resolution + ".jp2")
+            mask_file = os.path.join(src_mask_dir, '{}_'.format(mask) + resolution + ".jp2")
 
             mask_f = rasterio.open(mask_file, driver="JP2OpenJPEG")
             mask_data = mask_f.read(1)
