@@ -117,15 +117,15 @@ class crop_manager():
 
         for pixel_x, pixel_y in itertools.product(x_list, y_list):
             transformer = Transformer.from_crs(dataset.crs, "epsg:4326")
-            first_coord = transformer.transform(*dataset.xy(pixel_x, pixel_y))
+            first_coord = transformer.transform(*dataset.xy(pixel_y, pixel_x))
             _id = self.id_format.format(int(first_coord[0] * 1000), int(first_coord[1] * 1000))
             _path = os.path.join(numpy_root_data_dir, tile, _id)
             if not os.path.isdir(_path):
                 # altrimenti genero e salvo i metadati relativi
                 geometry = Polygon([first_coord,
-                                    transformer.transform(*dataset.xy(pixel_x + 127, pixel_y)),
-                                    transformer.transform(*dataset.xy(pixel_x + 127, pixel_y + 127)),
-                                    transformer.transform(*dataset.xy(pixel_x, pixel_y + 127))
+                                    transformer.transform(*dataset.xy(pixel_y, pixel_x + 127)),
+                                    transformer.transform(*dataset.xy(pixel_y + 127, pixel_x + 127)),
+                                    transformer.transform(*dataset.xy(pixel_y + 127, pixel_x))
                                     ])
                 tmp_meta = pd.DataFrame.from_records([{'id': _id,
                                                        'tile': tile,
