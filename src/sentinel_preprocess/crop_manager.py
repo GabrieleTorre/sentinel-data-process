@@ -1,14 +1,9 @@
-from shapely.geometry import Polygon
 from rasterio.windows import Window
 from rasterio.io import MemoryFile
 from tiff_utils import extrapolate
-from pyproj import Transformer
 from pathlib import Path
-
 from glob import glob
-import pandas as pd
 import numpy as np
-import itertools
 import geopandas
 import rasterio
 import os
@@ -94,9 +89,8 @@ class crop_manager():
 
         return tiff_f
 
-
-    def extract_tile_name(self, x): return x.split('/')[-2].split('_')[1]
-
+    @staticmethod
+    def extract_tile_name(x): return x.split('/')[-2].split('_')[1]
 
     def create_crops_data(self, safe_data_path, numpy_root_data_dir):
         _name = safe_data_path.split('/')[-1].split(".")[0]
@@ -109,38 +103,20 @@ class crop_manager():
 
         npname = _name.split('/')[-1].split('_')[2].split('T')[0]
 
-        dataset = crop_manager().read_all_bands(curr_data_dir)
-        cldmask = crop_manager().read_cloud_masks(curr_mask_dir)
+        dataset = self.read_all_bands(curr_data_dir)
+        cldmask = self.read_cloud_masks(curr_mask_dir)
 
-        # si esclude una striscia (inferiore a 128)
-        x_list = y_list = [i * 128 for i in range(10980 // 128 - 1)]
-
-        for pixel_x, pixel_y in itertools.product(x_list, y_list):
-            transformer = Transformer.from_crs(dataset.crs, "epsg:4326")
-            first_coord = transformer.transform(*dataset.xy(pixel_y, pixel_x))
-            _id = self.id_format.format(int(first_coord[0] * 1000), int(first_coord[1] * 1000))
-            _path = os.path.join(numpy_root_data_dir, tile, _id)
-            if not os.path.isdir(_path):
-                # altrimenti genero e salvo i metadati relativi
-                geometry = Polygon([first_coord,
-                                    transformer.transform(*dataset.xy(pixel_y, pixel_x + 127)),
-                                    transformer.transform(*dataset.xy(pixel_y + 127, pixel_x + 127)),
-                                    transformer.transform(*dataset.xy(pixel_y + 127, pixel_x))
-                                    ])
-                tmp_meta = pd.DataFrame.from_records([{'id': _id,
-                                                       'tile': tile,
-                                                       'start_x': pixel_x,
-                                                       'start_y': pixel_y,
-                                                       'geometry': geopandas.GeoSeries([geometry]).to_json()}])
-                Path(_path).mkdir(parents=True, exist_ok=True)
-                tmp_meta.to_json(os.path.join(_path, 'metadata.json'), orient='records')
+        df_meta = geopandas.GeoDataFrame.from_file(os.path.join(numpy_root_data_dir, tile, 'metadata.json'))
+        for _, sel in df_meta.iterrows():
+            _path = os.path.join(numpy_root_data_dir, tile, sel.id)
+            Path(_path).mkdir(parents=True, exist_ok=True)
 
             # crop 128x128 partendo da coordinate top-left
-            _frame = dataset.read(window=Window(pixel_x, pixel_y, 128, 128))
+            _frame = dataset.read(window=Window(sel.start_col, sel.start_row, 128, 128))
             np.save(os.path.join(_path, npname + '.npy'), _frame)
 
-            _mask = cldmask.read(window=Window(pixel_x, pixel_y, 128, 128))
-            cloudP_dir = os.path.join(_path , 'cloudProb')
+            _mask = cldmask.read(window=Window(sel.start_col, sel.start_row, 128, 128))
+            cloudP_dir = os.path.join(_path, 'cloudProb')
 
             if os.path.isdir(cloudP_dir) == False: os.mkdir(cloudP_dir)
             np.save(os.path.join(cloudP_dir, npname+'.npy'), _mask)
