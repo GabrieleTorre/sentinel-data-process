@@ -1,9 +1,13 @@
+from shapely.geometry import Polygon
 from rasterio.windows import Window
 from rasterio.io import MemoryFile
 from tiff_utils import extrapolate
+from pyproj import Transformer
 from pathlib import Path
 from glob import glob
+import pandas as pd
 import numpy as np
+import itertools
 import geopandas
 import rasterio
 import os
@@ -23,7 +27,7 @@ class crop_manager():
         self.masks_and_resolutions = list(zip(self.masks, self.masks_resolution))
 
         self.target_dim = (10980, 10980)
-        self.id_format = 'n{}e{}'
+        self.id_format = 'lat{}long{}'
 
 
     @staticmethod
@@ -36,7 +40,6 @@ class crop_manager():
             src_data_dirs.append((name, src_data_dir))
 
         return sorted(src_data_dirs, key=lambda x: x[0])
-
 
     def read_all_bands(self, src_data_dir):
         tiff_f = None
@@ -62,7 +65,6 @@ class crop_manager():
             band_f.close()
 
         return tiff_f
-
 
     def read_cloud_masks(self, src_mask_dir):
         tiff_f = None
@@ -120,3 +122,26 @@ class crop_manager():
 
             if os.path.isdir(cloudP_dir) == False: os.mkdir(cloudP_dir)
             np.save(os.path.join(cloudP_dir, npname+'.npy'), _mask)
+
+    def create_metada(self, safe_path):
+        curr_data_dir = glob(os.path.join(safe_path, "GRANULE/*/IMG_DATA"))[0]
+        tile = self.extract_tile_name(curr_data_dir)
+        dataset = self.read_all_bands(curr_data_dir)
+
+        # si esclude una striscia (inferiore a 128)
+        row_list = col_list = [i * 128 for i in range(10980 // 128 - 1)]
+        transformer = Transformer.from_crs(dataset.crs, "epsg:4326", always_xy=True)
+        meta_list = []
+        for pixel_row, pixel_col in itertools.product(row_list, row_list):
+            first_coord = transformer.transform(*dataset.xy(pixel_row, pixel_col, offset='ul'))
+            _id = self.id_format.format(int(first_coord[1] * 1000), int(first_coord[0] * 1000))
+            geometry = Polygon([first_coord,
+                                transformer.transform(*dataset.xy(pixel_row, pixel_col + 127, offset='ur')),
+                                transformer.transform(*dataset.xy(pixel_row + 127, pixel_col + 127, offset='lr')),
+                                transformer.transform(*dataset.xy(pixel_row + 127, pixel_col, offset='ll'))
+                                ])
+            meta_list.append({'id': _id, 'tile': tile,
+                              'start_row': pixel_row, 'start_col': pixel_col,
+                              'geometry': geometry})
+        df_meta = geopandas.GeoDataFrame(pd.DataFrame.from_dict(meta_list), crs="epsg:4326")
+        return df_meta
