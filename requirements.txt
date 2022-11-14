@@ -89,6 +89,7 @@ scikit-image==0.19.3
 scipy==1.7.3
 Send2Trash==1.8.0
 sentinelsat==1.1.1
+sentinel5dl==1.2
 Shapely==1.8.2
 six==1.16.0
 sniffio==1.3.0
