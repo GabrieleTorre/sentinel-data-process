@@ -1,6 +1,7 @@
 from sentinel5dl import search, download
 from datetime import datetime
 from pathlib import Path
+import pandas as pd
 import os
 
 
@@ -23,10 +24,16 @@ def main(product):
         # processing_mode='Near real time'
         processing_mode='Offline'
     )
+    df_products = pd.DataFrame(result.get('products'))
+    df_products.loc[:, 'dateref'] = df_products.summary.apply(lambda x: datetime.strptime(x[0].split(' : ')[1],
+                                                                                          '%Y-%m-%dT%H:%M:%S.%fZ'))
+    # select the first product for each week
+    weekly_products = df_products.set_index('dateref').resample('W').first().dropna(subset='id').astype({'id': int})
 
     output_dir = os.path.join(sentinel5_dir, product)
     Path(output_dir).mkdir(parents=True, exist_ok=True)
-    download(result.get('products'), output_dir=output_dir)
+    weekly_products.to_json(path_or_buf=os.path.join(output_dir, 'weekly_products.json'), orient='records')
+    download(weekly_products.to_dict(orient='records'), output_dir=output_dir)
 
 
 if __name__ == "__main__":
