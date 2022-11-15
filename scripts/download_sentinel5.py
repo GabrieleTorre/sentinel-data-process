@@ -28,7 +28,7 @@ def main(product):
     df_products.loc[:, 'dateref'] = df_products.summary.apply(lambda x: datetime.strptime(x[0].split(' : ')[1],
                                                                                           '%Y-%m-%dT%H:%M:%S.%fZ'))
     # select the first product for each week
-    weekly_products = df_products.set_index('dateref').resample('W').first().dropna(subset='id').astype({'id': int})
+    weekly_products = df_products.set_index('dateref').resample('W').first().dropna(subset=['id']).astype({'id': int})
 
     output_dir = os.path.join(sentinel5_dir, product)
     Path(output_dir).mkdir(parents=True, exist_ok=True)
